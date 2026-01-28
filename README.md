@@ -1,55 +1,200 @@
-# Anomaly Detection in Practice: A Real Case Study
+© 2025 Ludovico Francia. All rights reserved.
+# 🚨 Automated Anomaly Detection for Event Monitoring
 
-## Goal
+**Replacing Manual Monitoring in a Business-Critical Ads Pipeline**
 
-The project focuses on detecting anomalies in time-series event data collected via Google Analytics from four different e-commerce platforms. The goal is to build a program that is able to support the marketing team in monitoring changes in user behavior on the website or tracking system malfunctions. 
+## 🔧 Tech Stack
 
-## Highlights
+`Python · Pandas · DuckDB · Time Series Analysis · STL Decomposition · GCP Cloud Functions · Google Analytics`
 
-- **Data Management**: Data extraction, manipulation, and transformation;
-- **Time Series Analysis**: STL Decomposition and Week-Over-Week Comparison;
-- **Google Sheet Integration**: Thresholds for Week-Over-Week comparison can be modified by the marketing team through a Google Sheet.
+## Project Overview
 
+**Business Problem**
 
+At Immobiliare.it, user events tracked via Google Analytics are **critical inputs for ads campaigns**.
 
-## Approaches to Detecting Anomalies
-The time-series event data collected from Google Analytics of the 4 e-commerce platforms are characterized by strong weekly seasonality and an upward trend in the long run. The characteristics of these data led to the choice of using 2 methodologies for anomaly detection: STL Decomposition and Week-Over-Week Comparison. The developed program subjects each time series to both methods and if at least one of the two methods detects an anomaly then this is then reported to the user.
-### STL Decomposition
-Seasonal-Trend-Loess decomposition (STL decomposition) is a methodology used to decompose a historical series into three main components: trend, seasonality and residuals.
+These events directly affect:
 
-The trend identifies the long-term change in the data without accounting for seasonal fluctuations. Seasonality identifies periodic patterns that repeat over time (e.g., daily, weekly, monthly...). Finally, residuals represent the part of the time series that is not explained by either trend or seasonality. So the residuals contain the information concerning unexpected changes in the time series and these are used by the program to identify any anomalies.
+- campaign optimization
+- budget allocation
+- attribution
+- performance measurement
 
-Having established the date on which the presence or absence of an anomaly is to be checked, the program calculates:
-- The value of the residual on the day on which the anomaly detection analysis is performed;
-- The average of the residuals for the previous 30 days: since residuals represent deviations from expected behavior, their average should tend to zero in the absence of anomalies;
-- The standard deviation of the residuals around the mean multiplied by three: having ascertained that the distribution of the residuals approximates the normal distribution we know that about 99.97% of the data falls within three dev.std. of the mean.
-- The outlier threshold is equal to the mean of the residuals of the last 30 days + (3 x dev.std. of residuals).
+Before this project, a **human analyst manually monitored events every day**, spending **hours** inspecting dashboards to identify drops, spikes, or tracking issues.
 
-Finally, if the absolute value of the current residual is greater than the calculated anomaly threshold, then the program records and reports an anomaly: if a residual exceeds this threshold then it is highly unlikely to be due to normal variation.
-### Week-Over-Week Comparison
-In addition to there being a strong weekly seasonality of the time-series event data, the volume of an event on each day of the week is often very close to the volume of the event on the same day in the previous week.
+As traffic grew to **millions of events per day**, this approach became **unsustainable and risky**.
 
-The program using the wow_anomaly_check function performs an analysis of the variation between the volume of the event on the date being checked and the volume of the same event seven days earlier. If this variation in percentage and absolute terms is greater than the thresholds specified by the marketing team in the google sheet file ([here](https://docs.google.com/spreadsheets/d/13ad1oh3NpIt36cEcv__x0m0mIvT2_RQf69linO1sg9I/edit?usp=sharing)) then the program reports and records an anomaly.
+**My Solution**
 
-## FlowChart of the Program
-The developed anomaly detection program can be divided into 5 stages:
+I designed and implemented an **automated anomaly detection system** that:
 
-1. Data Input;
-2. Data Extraction and Preparation;
-3. Time Series Extraction;
-4. Anomaly Detection;
-5. Generation of Results.
+- runs **daily** on millions of events
+- replaces manual monitoring
+- detects abnormal changes in user behavior or tracking
+- alerts teams only when intervention is needed
 
-**Stage 1 - Data Input.** The user must specify:
+The system was deployed as **Google Cloud Platform (GCP) Functions** and is fully automated.
 
-- the path to the CSV file containing event data, e.g., “api_ga4_event_data.csv”. 
-- a date on which to search for anomalies, ex: “2024-04-10”;
-- the link to the Google Sheet file containing the thresholds for the Week-Over-Week Comparison, ex: "https://docs.google.com/spreadsheets/d/13ad1oh3NpIt36cEcv__x0m0mIvT2_RQf69linO1sg9I/export?format=csv".
+**Key Outcomes**
 
-**Stage 2 - Data Extraction and Preparation.** The program extracts the data contained in the CSV file, identifies the properties to be analyzed, and loads the alert thresholds defined within the google sheet file.
+- Eliminated manual daily monitoring
+- Faster detection of tracking issues impacting ads
+- Increased trust in analytics data used by marketing teams
 
-**Stage 3 - Time Series Extraction.** For each possible Property-Platform-event_name combination, the program generates the relevant time series to be subsequently analyzed.
+## 🏢 Business Context
 
-**Stage 4 - Anomaly Detection.** Each time series is then subjected to the two anomaly detection methodologies: STL decomposition and Week-Over-Week Comparison.
+The business operates at large scale:
 
-**Stage 5 - Generation of Results.** The results of the analyses are displayed in a compact form to the user.
+- multiple platforms (web, app)
+- multiple properties
+- hundreds of event types
+- strong weekly seasonality
+- continuous product changes
+
+### Why Events Matter
+
+Events are not just analytics artifacts:
+
+- they **power ads campaigns**
+- they determine how budgets are optimized
+- they influence automated bidding strategies
+
+If events are wrong or delayed:
+
+- ads decisions are wrong
+- budget can be wasted
+- performance is misinterpreted
+
+## 🎯 Problem Framing
+
+### Before Automation
+
+- One or more analysts manually:
+    - checked dashboards
+    - compared metrics day-over-day and week-over-week
+    - visually identified anomalies
+- The process was:
+    - time-consuming
+    - subjective
+    - not scalable
+    - dependent on individual expertise
+
+### Core Problem
+
+> How can we guarantee daily reliability of event data, at scale, without relying on manual checks?
+> 
+
+## 📊 Data Description
+
+- **Daily aggregated event counts**
+- Dimensions:
+    - Property
+    - Platform
+    - Event name
+- Volume:
+    - **millions of events per day**
+- Characteristics:
+    - strong weekly seasonality
+    - long-term growth trend
+    - highly heterogeneous event volumes
+
+These characteristics made simple threshold-based monitoring ineffective.
+
+## 🛠️ Technical Approach
+
+To reflect real-world constraints, I used a **hybrid anomaly detection strategy**.
+
+### 1️⃣ STL Decomposition (Statistical Method)
+
+**Why**
+
+- Handles seasonality explicitly
+- Interpretable
+- Robust for operational monitoring
+
+**How**
+
+- Decomposed each time series into:
+    - trend
+    - seasonality
+    - residuals
+- Used residuals to detect unexpected deviations
+- Applied **dynamic thresholds** to:
+    - reduce false positives on low-volume events
+    - adapt to changing traffic levels
+
+### 2️⃣ Week-over-Week Comparison (Rule-Based)
+
+Given strong weekly patterns:
+
+- Compared event volume to the **same weekday of the previous week**
+- An anomaly is detected only if:
+    - percentage change exceeds a threshold **and**
+    - absolute change exceeds a threshold
+
+Thresholds are:
+
+- property-specific
+- configurable by non-technical users
+
+## ⚙️ System Design & Deployment
+
+### Architecture
+
+- Implemented as **GCP Cloud Functions**
+- Executed **daily**
+- Fully automated
+
+### Workflow
+
+1. Load daily GA event data
+2. Identify properties active on the target date
+3. Build time series for each:
+    - Property × Platform × Event
+4. Run:
+    - STL anomaly detection
+    - Week-over-Week checks
+5. Aggregate anomalies
+6. Generate a compact alert message for stakeholders
+
+## 📣 Output & Alerting
+
+Alerts are designed to be:
+
+- concise
+- actionable
+- low-noise
+
+Example format (with random numbers):
+
+```
+Property A
+- Web > search_event | WoW: -1,200 (-35%)
+- App > lead_submit | WoW: +950 (+42%)
+```
+
+This allows teams to:
+
+- immediately investigate
+- understand impact
+- avoid alert fatigue
+
+## 📈 Business Impact
+
+### Operational Impact
+
+- Removed hours of manual daily monitoring
+- Enabled scalable event reliability checks
+
+### Business Impact
+
+- Faster detection of issues affecting ads campaigns
+- Reduced risk of budget misallocation
+- Increased trust in marketing analytics
+
+## 🚀 What I’d Improve Next
+
+- Persist anomalies for historical analysis
+- Group correlated anomalies
+- Add severity scoring
+- Introduce model-based forecasting for selected KPIs
