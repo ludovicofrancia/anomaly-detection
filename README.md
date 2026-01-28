@@ -1,4 +1,4 @@
-© 2025 Ludovico Francia. All rights reserved.
+© 2024 Ludovico Francia. All rights reserved.
 # 🚨 Automated Anomaly Detection for Event Monitoring
 
 **Replacing Manual Monitoring in a Business-Critical Ads Pipeline**
